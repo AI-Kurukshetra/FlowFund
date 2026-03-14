@@ -32,7 +32,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       nextFieldErrors.email = "Enter a valid email address.";
     }
 
-    if (!isStrongPassword(password)) {
+    if (mode === "signup" && !isStrongPassword(password)) {
       nextFieldErrors.password = "Password must include uppercase, lowercase, and a number.";
     }
 
@@ -56,10 +56,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
         if (signupError) {
           setError(signupError.message);
+          setLoading(false);
           return;
         }
 
         router.replace("/dashboard");
+        router.refresh();
         return;
       }
 
@@ -67,17 +69,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
       if (loginError) {
         setError(loginError.message);
+        setLoading(false);
         return;
       }
 
       router.replace("/dashboard");
-    } finally {
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in right now.");
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-4">
+    <form onSubmit={onSubmit} noValidate className="space-y-4" aria-busy={loading}>
       {mode === "login" && (
         <div className="space-y-2">
           <button
@@ -89,7 +94,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               setDemoMessage("");
               setFieldErrors({});
             }}
-            className="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            disabled={loading}
+            className="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-70"
           >
             Use Demo Credentials
           </button>
@@ -116,7 +122,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 setDemoLoading(false);
               }
             }}
-            disabled={demoLoading}
+            disabled={demoLoading || loading}
             className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-100 disabled:opacity-70"
           >
             {demoLoading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -138,6 +144,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           }`}
           required
           maxLength={120}
+          disabled={loading}
         />
         {fieldErrors.email && <p className="mt-1 text-xs text-rose-600">{fieldErrors.email}</p>}
       </label>
@@ -157,10 +164,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             required
             minLength={8}
             maxLength={72}
+            disabled={loading}
           />
           <button
             type="button"
             onClick={() => setShowPassword((curr) => !curr)}
+            disabled={loading}
             className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-slate-500 hover:text-slate-700"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
